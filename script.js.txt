@@ -1,0 +1,228 @@
+// ওয়ারিশদের তথ্য ইনপুট থেকে নেওয়া
+function getWarishData() {
+    return {
+        wife: document.getElementById('has-wife').checked,
+        wifeName: document.getElementById('wife-name').value || 'স্ত্রী',
+        father: document.getElementById('has-father').checked,
+        fatherName: document.getElementById('father-name').value || 'পিতা',
+        mother: document.getElementById('has-mother').checked,
+        motherName: document.getElementById('mother-name').value || 'মাতা',
+        sons: document.getElementById('has-son').checked ? parseInt(document.getElementById('son-count').value) || 0 : 0,
+        daughters: document.getElementById('has-daughter').checked ? parseInt(document.getElementById('daughter-count').value) || 0 : 0,
+        brothers: document.getElementById('has-brother').checked ? parseInt(document.getElementById('brother-count').value) || 0 : 0,
+        sisters: document.getElementById('has-sister').checked ? parseInt(document.getElementById('sister-count').value) || 0 : 0
+    };
+}
+
+// ফারায়েজ ক্যালকুলেশন
+function calculateFaraid(wealth, debt, warish) {
+    const netWealth = wealth - debt;
+    const shares = [];
+    
+    // স্ত্রীর ভাগ (১/৮ = 12.5%) - পুত্র থাকলে
+    if (warish.wife) {
+        if (warish.sons > 0) {
+            const wifeShare = netWealth * (1/8);
+            shares.push({
+                name: warish.wifeName,
+                percentage: 12.5,
+                share: wifeShare,
+                rule: 'স্ত্রী (পুত্র থাকলে ১/৮)'
+            });
+        } else {
+            const wifeShare = netWealth * (1/4);
+            shares.push({
+                name: warish.wifeName,
+                percentage: 25,
+                share: wifeShare,
+                rule: 'স্ত্রী (পুত্র না থাকলে ১/৪)'
+            });
+        }
+    }
+    
+    // মাতার ভাগ (১/৬ = 16.67%)
+    if (warish.mother) {
+        if (warish.sons > 0 || warish.daughters > 0) {
+            const motherShare = netWealth * (1/6);
+            shares.push({
+                name: warish.motherName,
+                percentage: 16.67,
+                share: motherShare,
+                rule: 'মাতা (সন্তান থাকলে ১/৬)'
+            });
+        } else {
+            const motherShare = netWealth * (1/6);
+            shares.push({
+                name: warish.motherName,
+                percentage: 16.67,
+                share: motherShare,
+                rule: 'মাতা (১/৬)'
+            });
+        }
+    }
+    
+    // পিতার ভাগ (১/৬ + আসাবা)
+    if (warish.father) {
+        if (warish.sons > 0 || warish.daughters > 0) {
+            const fatherFixed = netWealth * (1/6);
+            shares.push({
+                name: warish.fatherName,
+                percentage: 16.67,
+                share: fatherFixed,
+                rule: 'পিতা (সন্তান থাকলে ১/৬)'
+            });
+        }
+    }
+    
+    // পুত্র ও কন্যা (আসাবা - ২:১ অনুপাত)
+    const totalChildren = warish.sons + warish.daughters;
+    if (totalChildren > 0) {
+        let remaining = netWealth;
+        
+        // স্থির ভাগ বাদ
+        shares.forEach(s => remaining -= s.share);
+        
+        // পুত্র: ২ ভাগ, কন্যা: ১ ভাগ
+        const totalParts = warish.sons * 2 + warish.daughters * 1;
+        const partValue = remaining / totalParts;
+        
+        if (warish.sons > 0) {
+            const sonShare = partValue * 2;
+            shares.push({
+                name: `পুত্র (${warish.sons}টি)`,
+                percentage: (sonShare * warish.sons / netWealth) * 100,
+                share: sonShare * warish.sons,
+                rule: 'পুত্র (আসাবা - ২ ভাগ)'
+            });
+        }
+        
+        if (warish.daughters > 0) {
+            const daughterShare = partValue * 1;
+            shares.push({
+                name: `কন্যা (${warish.daughters}টি)`,
+                percentage: (daughterShare * warish.daughters / netWealth) * 100,
+                share: daughterShare * warish.daughters,
+                rule: 'কন্যা (আসাবা - ১ ভাগ)'
+            });
+        }
+    }
+    
+    // পিতা না থাকলে এবং সন্তান না থাকলে (আসাবা)
+    if (!warish.father && totalChildren === 0) {
+        shares.forEach(s => remaining -= s.share);
+        if (warish.father && remaining > 0) {
+            shares.push({
+                name: warish.fatherName,
+                percentage: (remaining / netWealth) * 100,
+                share: remaining,
+                rule: 'পিতা (আসাবা - বাকি)'
+            });
+        }
+    }
+    
+    return {
+        netWealth,
+        shares
+    };
+}
+
+// রেসাল্ট দেখানো
+function displayResult(result) {
+    const resultContent = document.getElementById('result-content');
+    let html = `<div class="result-item">
+        <span class="name">মোট সম্পদ</span>
+        <span class="share">₹${result.netWealth.toFixed(2)}</span>
+    </div>`;
+    
+    result.shares.forEach(share => {
+        html += `<div class="result-item">
+            <div>
+                <span class="name">${share.name}</span>
+                <span class="percentage">(${share.rule})</span>
+            </div>
+            <div>
+                <span class="share">₹${share.share.toFixed(2)}</span>
+                <span class="percentage">(${share.percentage.toFixed(2)}%)</span>
+            </div>
+        </div>`;
+    });
+    
+    resultContent.innerHTML = html;
+    document.getElementById('result').classList.remove('hidden');
+}
+
+// পিডিএফ জেনারেশন
+function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const wealth = document.getElementById('total-wealth').value;
+    const debt = document.getElementById('debt').value;
+    const warish = getWarishData();
+    const result = calculateFaraid(wealth, debt, warish);
+    
+    doc.setFontSize(20);
+    doc.text('ইসলামিক উত্তরাধিকার রিপোর্ট', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`মোট সম্পদ: ₹${wealth}`, 20, 40);
+    doc.text(`খসরু/খরচ: ₹${debt}`, 20, 50);
+    doc.text(`নিট সম্পদ: ₹${result.netWealth.toFixed(2)}`, 20, 60);
+    
+    doc.text('ওয়ারিশদের ভাগ:', 20, 80);
+    
+    let y = 90;
+    result.shares.forEach((share, i) => {
+        doc.text(`${share.name}: ₹${share.share.toFixed(2)} (${share.percentage.toFixed(2)}%)`, 20, y);
+        doc.text(`(${share.rule})`, 20, y + 7);
+        y += 15;
+    });
+    
+    doc.text(`\nতারিখ: ${new Date().toLocaleDateString('bn-BD')}`, 20, y + 10);
+    
+    doc.save('ইসলামিক_উত্তরাধিকার_রিপোর্ট.pdf');
+}
+
+// ইভেন্ট লিসেনার
+document.addEventListener('DOMContentLoaded', () => {
+    // Checkbox এর ইনপুট দেখানো/লুকানো
+    const checkboxes = ['has-wife', 'has-father', 'has-mother', 'has-son', 'has-daughter', 'has-brother', 'has-sister'];
+    checkboxes.forEach(id => {
+        document.getElementById(id).addEventListener('change', (e) => {
+            const inputId = id.replace('has-', '');
+            const inputMap = {
+                'wife': 'wife-name',
+                'father': 'father-name',
+                'mother': 'mother-name',
+                'son': 'son-count',
+                'daughter': 'daughter-count',
+                'brother': 'brother-count',
+                'sister': 'sister-count'
+            };
+            const input = document.getElementById(inputMap[inputId]);
+            if (e.target.checked) {
+                input.classList.remove('hidden');
+            } else {
+                input.classList.add('hidden');
+            }
+        });
+    });
+    
+    // ক্যালকুলেট বাটন
+    document.getElementById('calculate-btn').addEventListener('click', () => {
+        const wealth = parseFloat(document.getElementById('total-wealth').value);
+        const debt = parseFloat(document.getElementById('debt').value) || 0;
+        
+        if (!wealth || wealth <= 0) {
+            alert('মোট সম্পদ ইনপুট দিন!');
+            return;
+        }
+        
+        const warish = getWarishData();
+        const result = calculateFaraid(wealth, debt, warish);
+        displayResult(result);
+    });
+    
+    // পিডিএফ বাটন
+    document.getElementById('pdf-btn').addEventListener('click', generatePDF);
+});
