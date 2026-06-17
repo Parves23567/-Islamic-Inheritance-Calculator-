@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ইসলামিক উত্তরাধিকার ক্যালকুলেটর</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <h1>🕌 ইসলামিক উত্তরাধিকার ক্যালকুলেটর</h1>
+      <p>ফারায়েজ অনুযায়ী সম্পদ ভাগ করুন, রিপোর্ট দেখুন, এবং PDF ডাউনলোড করুন।</p>
+    </header>
+
+    <section class="card">
+      <h2>সম্পদের তথ্য</h2>
+      <div class="grid">
+        <label>
+          মোট সম্পদ (টাকা)
+          <input type="number" id="total-wealth" min="0" placeholder="1000000" />
+        </label>
+        <label>
+          দেনা/খরচ/ওসিয়ত বাদ (টাকা)
+          <input type="number" id="deductions" min="0" placeholder="0" />
+        </label>
+      </div>
+      <p class="note">নিট সম্পদ = মোট সম্পদ - দেনা/খরচ/ওসিয়ত।</p>
+    </section>
+
+    <section class="card">
+      <h2>ওয়ারিশ নির্বাচন</h2>
+      <div id="heirs" class="heirs"></div>
+      <div class="actions">
+        <button id="calculate-btn" class="btn primary">হিসাব করুন</button>
+        <button id="pdf-btn" class="btn secondary" disabled>PDF রিপোর্ট</button>
+      </div>
+    </section>
+
+    <section id="result-card" class="card hidden">
+      <h2>ফলাফল</h2>
+      <div id="result-summary" class="summary"></div>
+      <div id="result-table" class="result-table"></div>
+      <div id="result-notes" class="notes"></div>
+    </section>
+
+    <footer class="footer">
+      <p>শুধু শিক্ষামূলক/সহায়ক টুল। জটিল কেসে আলেম/মুফতির পরামর্শ নিন।</p>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
